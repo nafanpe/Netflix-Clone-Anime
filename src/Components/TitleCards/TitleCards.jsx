@@ -22,48 +22,42 @@ const TitleCards = ({ title, category = "popular" }) => {
   }
 
   const TMDB_BASE_URL = "https://api.themoviedb.org/3";
-  const PROXY_URL = "https://cors-anywhere.herokuapp.com/";
 
-  useEffect(() => {
-    const currentCardsRef = cardsRef.current;
+useEffect(() => {
+  const currentCardsRef = cardsRef.current;
 
-    const fetchMovies = async () => {
-      try {
-        let url;
-        if (category === "now_playing" || category === "upcoming") {
-          url = `${PROXY_URL}${TMDB_BASE_URL}/movie/${category}?language=en-US&page=1`;
-        } else {
-          const categorySort = {
-            popular: 'popularity.desc',
-            top_rated: 'vote_average.desc&vote_count.gte=1000',
-          };
-          url = `${PROXY_URL}${TMDB_BASE_URL}/discover/movie?` +
-                `with_genres=${ANIMATION_GENRE_ID}&` +
-                `sort_by=${categorySort[category]}&` +
-                `language=en-US&page=1`;
-        }
-
-        const response = await fetch(url, options);
-        const data = await response.json();
-
-        const filteredData = data.results.filter(movie => 
-          movie.genre_ids.includes(ANIMATION_GENRE_ID)
-        );
-
-        setApiData(filteredData);
-      } catch (err) {
-        console.error(err);
+  const fetchMovies = async () => {
+    try {
+      let url;
+      if (category === "now_playing" || category === "upcoming") {
+        url = `${TMDB_BASE_URL}/movie/${category}?language=en-US&page=1`;
+      } else {
+        const categorySort = {
+          popular: 'popularity.desc',
+          top_rated: 'vote_average.desc&vote_count.gte=1000',
+        };
+        url = `${TMDB_BASE_URL}/discover/movie?` +
+              `with_genres=${ANIMATION_GENRE_ID}&` +
+              `sort_by=${categorySort[category]}&` +
+              `language=en-US&page=1`;
       }
-    };
 
-    fetchMovies();
+      const response = await fetch(url, options);
+      const data = await response.json();
+      setApiData(data.results);
+    } catch (error) {
+      console.error("Error fetching movies:", error);
+    }
+  };
 
-    currentCardsRef.addEventListener('wheel', handleWheel);
+  fetchMovies();
 
-    return () => {
+  return () => {
+    if (currentCardsRef) {
       currentCardsRef.removeEventListener('wheel', handleWheel);
-    };
-  }, [category]);
+    }
+  };
+}, [category, options]);
 
   return (
     <div className='title-cards'>
