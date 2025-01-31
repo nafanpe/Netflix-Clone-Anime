@@ -30,7 +30,7 @@ useEffect(() => {
     try {
       let url;
       if (category === "now_playing" || category === "upcoming") {
-        url = `${TMDB_BASE_URL}/movie/${category}?language=en-US&page=1`;
+        url = `https://api.themoviedb.org/3/movie/${category}?language=en-US&page=1`;
       } else {
         const categorySort = {
           popular: 'popularity.desc',
@@ -44,7 +44,10 @@ useEffect(() => {
 
       const response = await fetch(url, options);
       const data = await response.json();
-      setApiData(data.results);
+      const filteredData = data.results.filter(movie => 
+        movie.genre_ids.includes(ANIMATION_GENRE_ID)
+      );
+      setApiData(filteredData);
     } catch (error) {
       console.error("Error fetching movies:", error);
     }
