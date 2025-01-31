@@ -21,6 +21,9 @@ const TitleCards = ({ title, category = "popular" }) => {
     cardsRef.current.scrollLeft += e.deltaY
   }
 
+  const TMDB_BASE_URL = "https://api.themoviedb.org/3";
+  const PROXY_URL = "https://cors-anywhere.herokuapp.com/";
+
   useEffect(() => {
     const currentCardsRef = cardsRef.current;
 
@@ -28,13 +31,13 @@ const TitleCards = ({ title, category = "popular" }) => {
       try {
         let url;
         if (category === "now_playing" || category === "upcoming") {
-          url = `https://api.themoviedb.org/3/movie/${category}?language=en-US&page=1`;
+          url = `${PROXY_URL}${TMDB_BASE_URL}/movie/${category}?language=en-US&page=1`;
         } else {
           const categorySort = {
             popular: 'popularity.desc',
             top_rated: 'vote_average.desc&vote_count.gte=1000',
           };
-          url = `https://api.themoviedb.org/3/discover/movie?` +
+          url = `${PROXY_URL}${TMDB_BASE_URL}/discover/movie?` +
                 `with_genres=${ANIMATION_GENRE_ID}&` +
                 `sort_by=${categorySort[category]}&` +
                 `language=en-US&page=1`;
