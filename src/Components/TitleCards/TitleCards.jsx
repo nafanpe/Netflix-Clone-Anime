@@ -8,11 +8,15 @@ const TitleCards = ({ title, category = "popular" }) => {
   const [apiData, setApiData] = useState([])
   const cardsRef = useRef()
   
+  // Normalize TMDB Authorization header to support tokens with/without the "Bearer" prefix
+  const rawAuthKey = import.meta.env.VITE_TMDB_AUTH_KEY || ''
+  const normalizedAuthorization = rawAuthKey.startsWith('Bearer ') ? rawAuthKey : `Bearer ${rawAuthKey}`
+
   const options = {
     method: 'GET',
     headers: {
       accept: 'application/json',
-      Authorization: import.meta.env.VITE_TMDB_AUTH_KEY
+      Authorization: normalizedAuthorization
     }
   };
 
@@ -23,44 +27,54 @@ const TitleCards = ({ title, category = "popular" }) => {
 
   const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 
-useEffect(() => {
-  const currentCardsRef = cardsRef.current;
+  // Derive preferred language and region from browser; fall back to en-US / US
+  const browserLanguage = typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en-US'
+  const [languageCode, countryCode] = browserLanguage.split('-')
+  const userLanguage = browserLanguage || 'en-US'
+  const userCountry = countryCode || 'US'
 
-  const fetchMovies = async () => {
-    try {
-      let url;
-      if (category === "now_playing" || category === "upcoming") {
-        url = `https://api.themoviedb.org/3/movie/${category}?language=en-US&page=1`;
-      } else {
-        const categorySort = {
-          popular: 'popularity.desc',
-          top_rated: 'vote_average.desc&vote_count.gte=1000',
-        };
-        url = `${TMDB_BASE_URL}/discover/movie?` +
-              `with_genres=${ANIMATION_GENRE_ID}&` +
-              `sort_by=${categorySort[category]}&` +
-              `language=en-US&page=1`;
+  useEffect(() => {
+    const currentCardsRef = cardsRef.current;
+
+    const fetchMovies = async () => {
+      try {
+        let url;
+        if (category === "now_playing" || category === "upcoming") {
+          url = `${TMDB_BASE_URL}/movie/${category}?language=${encodeURIComponent(userLanguage)}&page=1&region=${encodeURIComponent(userCountry)}`;
+        } else {
+          const categorySort = {
+            popular: 'popularity.desc',
+            top_rated: 'vote_average.desc&vote_count.gte=1000',
+          };
+          url = `${TMDB_BASE_URL}/discover/movie?` +
+                `with_genres=${ANIMATION_GENRE_ID}&` +
+                `sort_by=${categorySort[category]}&` +
+                `language=${encodeURIComponent(userLanguage)}&` +
+                `region=${encodeURIComponent(userCountry)}&` +
+                `page=1`;
+        }
+
+        const response = await fetch(url, options);
+        const data = await response.json();
+        const filteredData = (data.results || []).filter(movie => 
+          movie.genre_ids && movie.genre_ids.includes(ANIMATION_GENRE_ID)
+        );
+        setApiData(filteredData);
+      } catch (error) {
+        console.error("Error fetching movies:", error);
       }
+    };
 
-      const response = await fetch(url, options);
-      const data = await response.json();
-      const filteredData = data.results.filter(movie => 
-        movie.genre_ids.includes(ANIMATION_GENRE_ID)
-      );
-      setApiData(filteredData);
-    } catch (error) {
-      console.error("Error fetching movies:", error);
-    }
-  };
+    fetchMovies();
 
-  fetchMovies();
-
-  return () => {
-    if (currentCardsRef) {
-      currentCardsRef.removeEventListener('wheel', handleWheel);
-    }
-  };
-}, [category, options]);
+    return () => {
+      if (currentCardsRef) {
+        currentCardsRef.removeEventListener('wheel', handleWheel);
+      }
+    };
+  // we intentionally exclude `options` object to avoid re-fetching each render
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, userLanguage, userCountry]);
 
   return (
     <div className='title-cards'>
